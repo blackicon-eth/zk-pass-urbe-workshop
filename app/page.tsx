@@ -107,7 +107,7 @@ export default function Home() {
       </div>
       <div className="flex items-center gap-2 mt-4">
         <input type="checkbox" className="h-5 w-5" checked={mintToken} onChange={(e) => setMintToken(e.target.checked)} />
-        <label>Mint a token if the verification goes well</label>
+        <label>Write the attestation on chain if the verification goes well</label>
       </div>
     </div>
   );
