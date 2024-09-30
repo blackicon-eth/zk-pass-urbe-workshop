@@ -18,25 +18,20 @@ export interface TransGateResponse {
 
 /**
  * Starts the verification process
- * @param void
+ * @param appId - The app id of the app that is using the TransGate SDK
+ * @param schemaId - The schema id that was used to launch the TransGate verification process
  * @returns void
  */
-export const verify = async () => {
+export const verify = async (appId: string, schemaId: string) => {
   try {
-    // The appid of the project created in dev center
-    const appid = process.env.NEXT_PUBLIC_APP_ID!;
-
     // Create the connector instance
-    const connector = new TransgateConnect(appid);
+    const connector = new TransgateConnect(appId);
 
     // Check if the TransGate extension is installed
     // If it returns false, please prompt to install it from chrome web store
     const isAvailable = await connector.isTransgateAvailable();
 
     if (isAvailable) {
-      // The schema id of the project
-      const schemaId = process.env.NEXT_PUBLIC_SCHEMA_ID!;
-
       // Launch the process of verification
       // This method can be invoked in a loop when dealing with multiple schemas
       const res = (await connector.launch(schemaId)) as TransGateResponse;
