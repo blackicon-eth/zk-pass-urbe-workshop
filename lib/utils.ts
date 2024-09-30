@@ -18,45 +18,59 @@ export interface TransGateResponse {
 
 /**
  * Starts the verification process
- * @param void
+ * @param appId - The appid of the project created in dev center
+ * @param schemaId - The schema id of the project created in dev center
  * @returns void
  */
-export const verify = async () => {
+export const verify = async (appId: string, schemaId: string) => {
+  if (!appId || !schemaId) {
+    console.log("Please provide both appId and schemaId");
+    return;
+  }
+  console.log("verifying appId", appId);
+  console.log("verifying schemaId", schemaId);
   try {
-    // The appid of the project created in dev center
-    const appid = process.env.NEXT_PUBLIC_APP_ID!;
-
     // Create the connector instance
-    const connector = new TransgateConnect(appid);
+    const connector = new TransgateConnect(appId);
 
     // Check if the TransGate extension is installed
     // If it returns false, please prompt to install it from chrome web store
     const isAvailable = await connector.isTransgateAvailable();
 
-    if (isAvailable) {
-      // The schema id of the project
-      const schemaId = process.env.NEXT_PUBLIC_SCHEMA_ID!;
+    console.log("isAvailable", isAvailable);
 
+    if (isAvailable) {
       // Launch the process of verification
       // This method can be invoked in a loop when dealing with multiple schemas
       const res = (await connector.launch(schemaId)) as TransGateResponse;
 
+      console.log("res", res);
+
       // Verify the allocator signature
-      const isAllocatorSignatureValid = validateAllocatorSignature(schemaId, res);
+      const isAllocatorSignatureValid = validateAllocatorSignature(
+        schemaId,
+        res
+      );
+      console.log("isAllocatorSignatureValid", isAllocatorSignatureValid);
+
       if (!isAllocatorSignatureValid) {
         console.log("Allocator signature is invalid");
         return;
       }
 
       // Verify the validator signature
-      const isValidatorSignatureValid = validateValidatorSignature(schemaId, res);
+      const isValidatorSignatureValid = validateValidatorSignature(
+        schemaId,
+        res
+      );
+      console.log("isValidatorSignatureValid", isValidatorSignatureValid);
+
       if (!isValidatorSignatureValid) {
         console.log("Validator signature is invalid");
         return;
       }
 
       // verifiy the res onchain/offchain based on the requirement
-      console.log("Res: ", res);
     } else {
       console.log("Please install TransGate");
     }
@@ -71,7 +85,10 @@ export const verify = async () => {
  * @param transGateRes - The response from TransGate extension
  * @returns Whether the allocator signature is valid or not
  */
-export const validateAllocatorSignature = (schemaId: string, transGateRes: TransGateResponse): boolean => {
+export const validateAllocatorSignature = (
+  schemaId: string,
+  transGateRes: TransGateResponse
+): boolean => {
   const { taskId, allocatorSignature, validatorAddress } = transGateRes; //return by Transgate
 
   const taskIdHex = Web3.utils.stringToHex(taskId);
@@ -85,7 +102,10 @@ export const validateAllocatorSignature = (schemaId: string, transGateRes: Trans
   if (!paramsHash) {
     return false;
   }
-  const signedAllocatorAddress = web3.eth.accounts.recover(paramsHash, allocatorSignature);
+  const signedAllocatorAddress = web3.eth.accounts.recover(
+    paramsHash,
+    allocatorSignature
+  );
   return signedAllocatorAddress === allocatorAddress;
 };
 
@@ -95,8 +115,18 @@ export const validateAllocatorSignature = (schemaId: string, transGateRes: Trans
  * @param transGate - The response from TransGate extension
  * @returns Whether the validator signature is valid or not
  */
-export const validateValidatorSignature = (schemaId: string, transGateRes: TransGateResponse): boolean => {
-  const { taskId, uHash, publicFieldsHash, recipient, validatorAddress, validatorSignature } = transGateRes; //return by Transgate
+export const validateValidatorSignature = (
+  schemaId: string,
+  transGateRes: TransGateResponse
+): boolean => {
+  const {
+    taskId,
+    uHash,
+    publicFieldsHash,
+    recipient,
+    validatorAddress,
+    validatorSignature,
+  } = transGateRes; //return by Transgate
 
   const taskIdHex = Web3.utils.stringToHex(taskId);
   const schemaIdHex = Web3.utils.stringToHex(schemaId);
@@ -116,6 +146,9 @@ export const validateValidatorSignature = (schemaId: string, transGateRes: Trans
   if (!paramsHash) {
     return false;
   }
-  const signedValidatorAddress = web3.eth.accounts.recover(paramsHash, validatorSignature);
+  const signedValidatorAddress = web3.eth.accounts.recover(
+    paramsHash,
+    validatorSignature
+  );
   return signedValidatorAddress === validatorAddress;
 };
