@@ -1,14 +1,63 @@
 "use client";
 import { verify } from "@/lib/utils";
 import { useState } from "react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useWriteContract } from "wagmi";
+import { ethers } from "ethers";
+import { AttestationABI } from "@/lib/abi/AttestationABI";
 
 export default function Home() {
   const [appId, setAppId] = useState(process.env.NEXT_PUBLIC_APP_ID || "");
   const [schemaId, setSchemaId] = useState(process.env.NEXT_PUBLIC_SCHEMA_ID || "");
+  const [mintToken, setMintToken] = useState(false);
+  const account = useAccount();
+  const { writeContract } = useWriteContract();
 
-  // A function that starts the zkpass verification process
+  // A function that starts the zkpass verification process and mints a token
+  // if the verification goes well and the mintToken checkbox is checked
   const handleVerify = async () => {
-    await verify(appId, schemaId);
+    // Verify
+    const { response, message } = await verify(appId, schemaId, account.address);
+
+    // If the response is null, show an alert with the message
+    if (!response) {
+      alert(message);
+      return;
+    }
+
+    // Log the response and, if the mintToken checkbox is checked, mint a token
+    console.log("Transgate response: ", response);
+    if (mintToken && response.recipient) {
+      try {
+        //Sepolia contract address
+        //You can add from https://chainlist.org/?search=11155111&testnets=true
+        const contractAddress = "0x8c18c0436A8d6ea44C87Bf5853F8D11B55CF0302";
+
+        const hexTaskId = ethers.hexlify(ethers.toUtf8Bytes(response.taskId)) as `0x${string}`; // to hex
+        const hexSchemaId = ethers.hexlify(ethers.toUtf8Bytes(schemaId)) as `0x${string}`; // to hex
+
+        const args = {
+          taskId: hexTaskId,
+          schemaId: hexSchemaId,
+          uHash: response.uHash,
+          recipient: response.recipient,
+          publicFieldsHash: response.publicFieldsHash,
+          validator: response.validatorAddress,
+          allocatorSignature: response.allocatorSignature,
+          validatorSignature: response.validatorSignature,
+        };
+
+        writeContract({
+          address: contractAddress,
+          abi: AttestationABI,
+          functionName: "attest",
+          args: [args],
+        });
+      } catch (err) {
+        alert(JSON.stringify(err));
+        console.log("error", err);
+      }
+    }
   };
 
   return (
@@ -43,14 +92,23 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Verify button */}
-      <button
-        className={`${!appId || !schemaId ? "bg-gray-400" : "bg-yellow-300"} px-5 py-2 mt-8 text-black rounded-md`}
-        onClick={handleVerify}
-        disabled={!appId || !schemaId}
-      >
-        Verify
-      </button>
+      {/* Verify button, Connect button and minting checkbox */}
+      <div className="flex gap-4 mt-8 items-center">
+        <ConnectButton />
+        <button
+          className={`${
+            !appId || !schemaId || !account.address ? "bg-gray-400" : "bg-yellow-300"
+          } px-5 py-2 text-black rounded-md`}
+          onClick={handleVerify}
+          disabled={!appId || !schemaId || !account.address}
+        >
+          Verify
+        </button>
+      </div>
+      <div className="flex items-center gap-2 mt-4">
+        <input type="checkbox" className="h-5 w-5" checked={mintToken} onChange={(e) => setMintToken(e.target.checked)} />
+        <label>Mint a token if the verification goes well</label>
+      </div>
     </div>
   );
 }
