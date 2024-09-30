@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 
 export const config = getDefaultConfig({
   appName: "zkPass Demo App",
-  projectId: "f01cf64d877f3cb844fb83114d02d88c",
+  projectId: process.env.NEXT_PUBLIC_PROJECT_ID!,
   chains: [sepolia],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
