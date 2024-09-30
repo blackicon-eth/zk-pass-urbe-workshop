@@ -5,24 +5,28 @@ import { allocatorAddress } from "./constants";
 const web3 = new Web3();
 
 export interface TransGateResponse {
-  allocatorAddress: string;
-  allocatorSignature: string;
-  //publicFields: [];
-  publicFieldsHash: string;
-  recipient: undefined;
+  allocatorAddress: `0x${string}`;
+  allocatorSignature: `0x${string}`;
+  publicFields: any[];
+  publicFieldsHash: `0x${string}`;
+  recipient?: `0x${string}`;
   taskId: string;
-  uHash: string;
-  validatorAddress: string;
-  validatorSignature: string;
+  uHash: `0x${string}`;
+  validatorAddress: `0x${string}`;
+  validatorSignature: `0x${string}`;
 }
 
 /**
  * Starts the verification process
  * @param appId - The app id of the app that is using the TransGate SDK
  * @param schemaId - The schema id that was used to launch the TransGate verification process
- * @returns void
+ * @returns An object containing the response from TransGate extension (or null if an error occurred) and a log message
  */
-export const verify = async (appId: string, schemaId: string) => {
+export const verify = async (
+  appId: string,
+  schemaId: string,
+  recipient: `0x${string}` | undefined
+): Promise<{ response: TransGateResponse | null; message: string }> => {
   try {
     // Create the connector instance
     const connector = new TransgateConnect(appId);
@@ -34,29 +38,42 @@ export const verify = async (appId: string, schemaId: string) => {
     if (isAvailable) {
       // Launch the process of verification
       // This method can be invoked in a loop when dealing with multiple schemas
-      const res = (await connector.launch(schemaId)) as TransGateResponse;
+      const res = (await connector.launch(schemaId, recipient)) as TransGateResponse;
 
       // Verify the allocator signature
       const isAllocatorSignatureValid = validateAllocatorSignature(schemaId, res);
       if (!isAllocatorSignatureValid) {
-        console.log("Allocator signature is invalid");
-        return;
+        return {
+          message: "Allocator signature is invalid",
+          response: null,
+        };
       }
 
       // Verify the validator signature
       const isValidatorSignatureValid = validateValidatorSignature(schemaId, res);
       if (!isValidatorSignatureValid) {
-        console.log("Validator signature is invalid");
-        return;
+        return {
+          message: "Validator signature is invalid",
+          response: null,
+        };
       }
 
-      // verifiy the res onchain/offchain based on the requirement
-      console.log("Res: ", res);
+      // If both signatures are valid, return the response
+      return {
+        message: "Verification successful",
+        response: res,
+      };
     } else {
-      console.log("Please install TransGate");
+      return {
+        message: "Please install TransGate",
+        response: null,
+      };
     }
-  } catch (error) {
-    console.log("transgate error", error);
+  } catch (error: any) {
+    return {
+      message: "TransGate error: " + error.message,
+      response: null,
+    };
   }
 };
 
