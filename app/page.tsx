@@ -5,6 +5,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useWriteContract } from "wagmi";
 import { ethers } from "ethers";
 import { AttestationABI } from "@/lib/abi/AttestationABI";
+import { contractAddress } from "@/lib/constants";
 
 export default function Home() {
   const [appId, setAppId] = useState(process.env.NEXT_PUBLIC_APP_ID || "");
@@ -29,10 +30,6 @@ export default function Home() {
     console.log("Transgate response: ", response);
     if (mintToken && response.recipient) {
       try {
-        //Sepolia contract address
-        //You can add from https://chainlist.org/?search=11155111&testnets=true
-        const contractAddress = "0x8c18c0436A8d6ea44C87Bf5853F8D11B55CF0302";
-
         const hexTaskId = ethers.hexlify(ethers.toUtf8Bytes(response.taskId)) as `0x${string}`; // to hex
         const hexSchemaId = ethers.hexlify(ethers.toUtf8Bytes(schemaId)) as `0x${string}`; // to hex
 
